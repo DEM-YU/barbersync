@@ -32,3 +32,8 @@ uvicorn==0.40.0
 virtualenv==20.34.0
 websocket-client==1.8.0
 wsproto==1.2.0
+fastapi
+uvicorn
+sqlalchemy
+jinja2
+python-multipart
