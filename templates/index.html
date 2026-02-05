@@ -108,9 +108,21 @@
             <div>
                 <h1 class="text-xl font-semibold text-[#1d1d1f] tracking-tight">BarberSync</h1>
             </div>
-            <a href="/login" class="text-sm font-medium text-[#007AFF] hover:text-[#0056b3] transition-colors">
-                管理入口
-            </a>
+            <div class="flex items-center gap-4">
+                <!-- 帮助按钮 -->
+                <button 
+                    onclick="openHelpModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-[#f5f5f7] hover:bg-[#e8e8ed] transition-colors"
+                    title="使用帮助"
+                >
+                    <svg class="w-4 h-4 text-[#86868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </button>
+                <a href="/login" class="text-sm font-medium text-[#007AFF] hover:text-[#0056b3] transition-colors">
+                    管理入口
+                </a>
+            </div>
         </div>
     </header>
 
@@ -181,10 +193,6 @@
                 <div class="flex items-center gap-2">
                     <div class="w-4 h-4 rounded-md bg-[#e8e8ed]"></div>
                     <span class="text-[#86868b] font-medium">已占用</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded-md bg-gradient-to-br from-[#007AFF] to-[#5856D6]"></div>
-                    <span class="text-[#86868b] font-medium">已选中</span>
                 </div>
             </div>
 
@@ -384,6 +392,106 @@
         </div>
     </div>
 
+    <!-- 帮助说明模态框 -->
+    <div id="help-modal" class="modal-backdrop hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
+            <!-- 模态框头部 -->
+            <div class="px-8 pt-8 pb-4 text-center shrink-0">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-[#34C759] to-[#30B350] rounded-2xl mb-4">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-semibold text-[#1d1d1f] mb-1">使用指南</h3>
+                <p class="text-[#86868b] text-base">如何使用 BarberSync 预约系统</p>
+            </div>
+            
+            <!-- 帮助内容 - 可滚动 -->
+            <div class="px-8 pb-8 overflow-y-auto">
+                <div class="space-y-6">
+                    <!-- 如何预约 -->
+                    <div class="bg-[#f5f5f7] rounded-2xl p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-[#007AFF] rounded-lg flex items-center justify-center shrink-0">
+                                <span class="text-white font-semibold text-sm">1</span>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-[#1d1d1f] mb-1">如何预约</h4>
+                                <p class="text-sm text-[#86868b] leading-relaxed">
+                                    点击时间表中<span class="inline-block w-3 h-3 border-2 border-[#d2d2d7] rounded align-middle mx-1"></span>白色空白格子，选择您想要的时间。填写姓名和电话后即可完成预约。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 如何取消 -->
+                    <div class="bg-[#f5f5f7] rounded-2xl p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-[#FF3B30] rounded-lg flex items-center justify-center shrink-0">
+                                <span class="text-white font-semibold text-sm">2</span>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-[#1d1d1f] mb-1">如何取消预约</h4>
+                                <p class="text-sm text-[#86868b] leading-relaxed">
+                                    点击时间表中<span class="inline-block w-3 h-3 bg-[#e8e8ed] rounded align-middle mx-1"></span>灰色已占用格子，输入您预约时填写的姓名和电话验证身份后可取消预约。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 图例说明 -->
+                    <div class="bg-[#f5f5f7] rounded-2xl p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-[#5856D6] rounded-lg flex items-center justify-center shrink-0">
+                                <span class="text-white font-semibold text-sm">3</span>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-[#1d1d1f] mb-2">颜色说明</h4>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-4 h-4 rounded border-2 border-[#d2d2d7] bg-white"></div>
+                                        <span class="text-[#86868b]">可预约时段</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-4 h-4 rounded bg-[#e8e8ed]"></div>
+                                        <span class="text-[#86868b]">已被预约（可点击取消）</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-4 h-4 rounded bg-[#f5f5f7]"></div>
+                                        <span class="text-[#86868b]">已过期时段</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 温馨提示 -->
+                    <div class="bg-[#FF9500]/10 border border-[#FF9500]/20 rounded-2xl p-4">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-[#FF9500] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-[#1d1d1f] mb-1">温馨提示</h4>
+                                <p class="text-sm text-[#86868b] leading-relaxed">
+                                    请按时到达，如需取消请提前操作。感谢您的理解与配合！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 关闭按钮 -->
+                <button 
+                    onclick="closeHelpModal()"
+                    class="w-full mt-6 px-5 py-3.5 apple-btn-primary text-white rounded-xl font-semibold"
+                >
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 当前选中的格子元素
         let currentSelected = null;
@@ -548,6 +656,29 @@
         document.getElementById('cancel-modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeCancelModal();
+            }
+        });
+
+        /**
+         * 打开帮助模态框
+         */
+        function openHelpModal() {
+            const modal = document.getElementById('help-modal');
+            modal.classList.remove('hidden');
+        }
+
+        /**
+         * 关闭帮助模态框
+         */
+        function closeHelpModal() {
+            const modal = document.getElementById('help-modal');
+            modal.classList.add('hidden');
+        }
+
+        // 帮助模态框点击背景关闭
+        document.getElementById('help-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeHelpModal();
             }
         });
     </script>
