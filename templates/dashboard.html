@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>理发师看板 - BarberSync</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sf': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .date-btn {
+            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .date-btn:hover {
+            background-color: #f5f5f7;
+        }
+        .date-btn.active {
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+            color: white;
+        }
+        
+        .appointment-card {
+            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .appointment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+        
+        .cancel-btn {
+            transition: all 0.15s ease;
+        }
+        .cancel-btn:hover {
+            background-color: #FF3B30;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-[#fbfbfd] min-h-screen">
+    
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-black/5">
+        <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-[#007AFF] to-[#5856D6] rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-lg font-semibold text-[#1d1d1f]">理发师看板</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-sm font-medium text-[#007AFF] hover:text-[#0056b3] transition-colors">
+                    ← 返回预约页
+                </a>
+                <a href="/logout" class="text-sm font-medium text-[#FF3B30] hover:text-[#cc2f26] transition-colors">
+                    退出登录
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-6 py-8">
+        
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-black/5">
+                <div class="text-sm font-medium text-[#86868b] mb-1">今日预约</div>
+                <div class="text-3xl font-semibold text-[#1d1d1f]">{{ today_count }}</div>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-black/5">
+                <div class="text-sm font-medium text-[#86868b] mb-1">本周预约</div>
+                <div class="text-3xl font-semibold text-[#1d1d1f]">{{ week_count }}</div>
+            </div>
+        </div>
+
+        <!-- 日期选择器 -->
+        <div class="mb-6">
+            <h2 class="text-sm font-medium text-[#86868b] mb-3">选择日期</h2>
+            <div class="flex gap-2 overflow-x-auto pb-2">
+                {% for opt in date_options %}
+                <a 
+                    href="/dashboard?date={{ opt.date }}"
+                    class="date-btn flex-shrink-0 px-4 py-2.5 rounded-xl border border-[#d2d2d7] text-center min-w-[72px] {{ 'active' if opt.date == selected_date else 'bg-white text-[#1d1d1f]' }}"
+                >
+                    <div class="text-xs font-medium {{ 'text-white/80' if opt.date == selected_date else 'text-[#86868b]' }}">
+                        {{ '今天' if opt.is_today else opt.weekday }}
+                    </div>
+                    <div class="text-sm font-semibold">{{ opt.display }}</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 预约列表标题 -->
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-[#1d1d1f]">{{ selected_display }} 的预约</h2>
+            <span class="text-sm text-[#86868b]">共 {{ appointments|length }} 个</span>
+        </div>
+
+        <!-- 锁定时间功能 -->
+        <div class="mb-6 bg-white rounded-2xl p-5 shadow-sm border border-black/5">
+            <h3 class="text-sm font-medium text-[#86868b] mb-3">🔒 锁定时间（休息/外出）</h3>
+            <form action="/block-time" method="post" class="flex gap-3 items-end flex-wrap">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-xs text-[#86868b] mb-1">选择日期和时间</label>
+                    <select name="time" required class="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#007AFF]">
+                        {% for opt in date_options %}
+                        <optgroup label="{{ opt.display }} {{ opt.weekday }}">
+                            {% for hour in range(8, 20) %}
+                            <option value="{{ opt.date }} {{ '%02d'|format(hour) }}:00">{{ opt.display }} {{ '%02d'|format(hour) }}:00</option>
+                            <option value="{{ opt.date }} {{ '%02d'|format(hour) }}:30">{{ opt.display }} {{ '%02d'|format(hour) }}:30</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="px-4 py-2 bg-[#86868b] hover:bg-[#6e6e73] text-white rounded-lg text-sm font-medium transition-colors">
+                    锁定此时间
+                </button>
+            </form>
+        </div>
+
+        <!-- 预约卡片列表 -->
+        {% if appointments %}
+        <div class="space-y-3">
+            {% for appt in appointments %}
+            <div class="appointment-card bg-white rounded-2xl p-5 shadow-sm border border-black/5 {{ 'opacity-60' if appt.phone == 'SYSTEM_BLOCK' else '' }}">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <!-- 时间 -->
+                        <div class="text-center">
+                            <div class="text-2xl font-semibold {{ 'text-[#86868b]' if appt.phone == 'SYSTEM_BLOCK' else 'text-[#007AFF]' }} tabular-nums">
+                                {{ appt.start_time.strftime('%H:%M') }}
+                            </div>
+                        </div>
+                        
+                        <!-- 分隔线 -->
+                        <div class="w-px h-10 bg-[#e8e8ed]"></div>
+                        
+                        <!-- 客户信息 -->
+                        <div>
+                            <div class="text-base font-semibold text-[#1d1d1f]">{{ appt.customer_name }}</div>
+                            {% if appt.phone == 'SYSTEM_BLOCK' %}
+                            <span class="text-sm text-[#86868b]">系统锁定</span>
+                            {% else %}
+                            <a href="tel:{{ appt.phone }}" class="text-sm text-[#007AFF] hover:underline">
+                                {{ appt.phone }}
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 取消/解锁按钮 -->
+                    <form action="/cancel/{{ appt.id }}" method="post" class="inline" 
+                          onsubmit="return confirm('{{ '确定要解锁此时间段吗？' if appt.phone == 'SYSTEM_BLOCK' else '确定要取消这个预约吗？' }}')">
+                        <button type="submit" 
+                                class="cancel-btn px-4 py-2 rounded-lg border {{ 'border-[#86868b] text-[#86868b]' if appt.phone == 'SYSTEM_BLOCK' else 'border-[#FF3B30] text-[#FF3B30]' }} text-sm font-medium">
+                            {{ '解锁' if appt.phone == 'SYSTEM_BLOCK' else '取消' }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- 空状态 -->
+        <div class="bg-white rounded-2xl p-12 shadow-sm border border-black/5 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-[#f5f5f7] rounded-2xl mb-4">
+                <svg class="w-8 h-8 text-[#86868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-[#1d1d1f] mb-1">暂无预约</h3>
+            <p class="text-[#86868b]">{{ selected_display }} 还没有预约记录</p>
+        </div>
+        {% endif %}
+
+    </main>
+
+</body>
+</html>

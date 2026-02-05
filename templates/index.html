@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberSync 预约</title>
+    <!-- Apple SF Pro 风格字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sf': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* 苹果风格滚动条 */
+        .custom-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
+        
+        /* 时间格子样式 */
+        .time-slot {
+            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .time-slot.available:hover {
+            background-color: #f5f5f7;
+            transform: scale(1.02);
+        }
+        .time-slot.selected {
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+            border-color: transparent;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+        
+        /* 苹果风格按钮 */
+        .apple-btn-primary {
+            background: linear-gradient(135deg, #007AFF 0%, #0066CC 100%);
+            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .apple-btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.4);
+        }
+        .apple-btn-primary:active {
+            transform: scale(0.98);
+        }
+        
+        /* 模态框动画 */
+        .modal-backdrop {
+            transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .modal-content {
+            transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .modal-backdrop.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .modal-backdrop.hidden .modal-content {
+            transform: scale(0.95) translateY(20px);
+            opacity: 0;
+        }
+        
+        /* 苹果风格卡片 */
+        .apple-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        /* 输入框聚焦效果 */
+        .apple-input:focus {
+            border-color: #007AFF;
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-[#fbfbfd] min-h-screen">
+    
+    <!-- 头部导航 -->
+    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-black/5">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-semibold text-[#1d1d1f] tracking-tight">BarberSync</h1>
+            </div>
+            <a href="/login" class="text-sm font-medium text-[#007AFF] hover:text-[#0056b3] transition-colors">
+                管理入口
+            </a>
+        </div>
+    </header>
+
+    <!-- 主标题区域 -->
+    <section class="pt-12 pb-8 px-6 text-center max-w-5xl mx-auto">
+        <h2 class="text-4xl sm:text-5xl font-semibold text-[#1d1d1f] tracking-tight leading-tight mb-4">
+            预约您的理发时间
+        </h2>
+        <p class="text-xl text-[#86868b] font-normal max-w-2xl mx-auto">
+            选择方便的时间，即刻预约。简单、快捷、准时。
+        </p>
+    </section>
+
+    <!-- 提示消息 -->
+    <div class="px-6 max-w-5xl mx-auto">
+        <div id="success-msg" class="hidden mb-6 bg-[#34C759]/10 border border-[#34C759]/20 text-[#1d1d1f] px-5 py-4 rounded-2xl text-center">
+            <span class="inline-flex items-center gap-2 font-medium">
+                <svg class="w-5 h-5 text-[#34C759]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                预约成功！我们会尽快与您联系确认。
+            </span>
+        </div>
+        <div id="cancel-success-msg" class="hidden mb-6 bg-[#34C759]/10 border border-[#34C759]/20 text-[#1d1d1f] px-5 py-4 rounded-2xl text-center">
+            <span class="inline-flex items-center gap-2 font-medium">
+                <svg class="w-5 h-5 text-[#34C759]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                预约已取消。
+            </span>
+        </div>
+        <div id="error-msg" class="hidden mb-6 bg-[#FF3B30]/10 border border-[#FF3B30]/20 text-[#1d1d1f] px-5 py-4 rounded-2xl text-center">
+            <span class="inline-flex items-center gap-2 font-medium">
+                <svg class="w-5 h-5 text-[#FF3B30]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                该时间段已被预约，请选择其他时间。
+            </span>
+        </div>
+        <div id="auth-error-msg" class="hidden mb-6 bg-[#FF3B30]/10 border border-[#FF3B30]/20 text-[#1d1d1f] px-5 py-4 rounded-2xl text-center">
+            <span class="inline-flex items-center gap-2 font-medium">
+                <svg class="w-5 h-5 text-[#FF3B30]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                姓名或电话不匹配，无法取消预约。
+            </span>
+        </div>
+        <div id="past-error-msg" class="hidden mb-6 bg-[#FF3B30]/10 border border-[#FF3B30]/20 text-[#1d1d1f] px-5 py-4 rounded-2xl text-center">
+            <span class="inline-flex items-center gap-2 font-medium">
+                <svg class="w-5 h-5 text-[#FF3B30]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                不能预约过去的时间。
+            </span>
+        </div>
+    </div>
+
+    <!-- 时间表网格 -->
+    <main class="px-6 pb-16 max-w-5xl mx-auto">
+        <div class="apple-card rounded-3xl p-6 sm:p-8 shadow-lg shadow-black/5 border border-black/5">
+            
+            <!-- 图例说明 -->
+            <div class="flex items-center justify-center gap-8 mb-6 text-sm">
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded-md border-2 border-[#d2d2d7] bg-white"></div>
+                    <span class="text-[#86868b] font-medium">可预约</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded-md bg-[#e8e8ed]"></div>
+                    <span class="text-[#86868b] font-medium">已占用</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded-md bg-gradient-to-br from-[#007AFF] to-[#5856D6]"></div>
+                    <span class="text-[#86868b] font-medium">已选中</span>
+                </div>
+            </div>
+
+            <!-- 可横向滚动的时间表 -->
+            <div class="overflow-x-auto custom-scroll pb-2">
+                <table class="w-full min-w-[500px]">
+                    <!-- 表头：日期 -->
+                    <thead>
+                        <tr>
+                            <th class="w-16 py-3 text-[#86868b] text-xs font-semibold uppercase tracking-wider">时间</th>
+                            {% for day in days %}
+                            <th class="py-3 text-center min-w-[72px]">
+                                <div class="text-[#1d1d1f] font-semibold text-sm">{{ day.display }}</div>
+                                <div class="text-[#86868b] text-xs font-medium">{{ day.weekday }}</div>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    
+                    <!-- 表体：时间格子 -->
+                    <tbody>
+                        {% for slot in time_slots %}
+                        <tr>
+                            <!-- 时间标签 -->
+                            <td class="py-1.5 pr-3 text-right text-xs text-[#86868b] font-medium tabular-nums">
+                                {{ slot }}
+                            </td>
+                            
+                            <!-- 每天的格子 -->
+                            {% for day in days %}
+                            {% set slot_key = day.date ~ " " ~ slot %}
+                            {% set is_booked = slot_key in booked_slots %}
+                            {% set is_past = slot_key < current_time %}
+                            
+                            <td class="p-1">
+                                {% if is_past %}
+                                <!-- 已过期 -->
+                                <div class="time-slot h-8 rounded-lg bg-[#f5f5f7] cursor-not-allowed">
+                                </div>
+                                {% elif is_booked %}
+                                <!-- 已占用 - 可点击取消 -->
+                                <div 
+                                    class="time-slot booked h-8 rounded-lg bg-[#e8e8ed] cursor-pointer hover:bg-[#d8d8dd] transition-colors"
+                                    data-slot="{{ slot_key }}"
+                                    data-display="{{ day.display }} {{ slot }}"
+                                    onclick="selectBookedSlot(this)"
+                                >
+                                </div>
+                                {% else %}
+                                <!-- 可预约 -->
+                                <div 
+                                    class="time-slot available h-8 rounded-lg bg-white cursor-pointer
+                                           border-2 border-[#d2d2d7] hover:border-[#007AFF]"
+                                    data-slot="{{ slot_key }}"
+                                    data-display="{{ day.display }} {{ slot }}"
+                                    onclick="selectSlot(this)"
+                                >
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 预约确认模态框 -->
+    <div id="booking-modal" class="modal-backdrop hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+            <!-- 模态框头部 -->
+            <div class="px-8 pt-8 pb-4 text-center">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-[#007AFF] to-[#5856D6] rounded-2xl mb-4">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-semibold text-[#1d1d1f] mb-1">确认预约</h3>
+                <p id="selected-time-display" class="text-[#86868b] text-base">选中时间：--</p>
+            </div>
+            
+            <!-- 表单内容 -->
+            <form id="booking-form" action="/book" method="post" class="px-8 pb-8 space-y-5">
+                <!-- 隐藏的时间字段 -->
+                <input type="hidden" id="time-input" name="time" value="">
+                
+                <div>
+                    <label class="block text-sm font-medium text-[#1d1d1f] mb-2">您的称呼</label>
+                    <input 
+                        type="text" 
+                        name="name" 
+                        id="name-input"
+                        required 
+                        placeholder="请输入姓名" 
+                        class="apple-input w-full border-2 border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] placeholder-[#86868b] focus:outline-none transition-all"
+                    >
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-[#1d1d1f] mb-2">手机号码</label>
+                    <input 
+                        type="tel" 
+                        name="phone" 
+                        id="phone-input"
+                        required 
+                        placeholder="请输入11位手机号" 
+                        pattern="[0-9]{11}"
+                        class="apple-input w-full border-2 border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] placeholder-[#86868b] focus:outline-none transition-all"
+                    >
+                </div>
+                
+                <!-- 按钮组 -->
+                <div class="flex gap-3 pt-3">
+                    <button 
+                        type="button" 
+                        onclick="closeModal()"
+                        class="flex-1 px-5 py-3.5 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl font-semibold hover:bg-[#e8e8ed] transition-all"
+                    >
+                        取消
+                    </button>
+                    <button 
+                        type="submit"
+                        class="flex-1 px-5 py-3.5 apple-btn-primary text-white rounded-xl font-semibold"
+                    >
+                        确认预约
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 取消预约模态框 -->
+    <div id="cancel-modal" class="modal-backdrop hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+            <!-- 模态框头部 -->
+            <div class="px-8 pt-8 pb-4 text-center">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-[#FF3B30] rounded-2xl mb-4">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-semibold text-[#1d1d1f] mb-1">取消预约</h3>
+                <p id="cancel-time-display" class="text-[#86868b] text-base">选中时间：--</p>
+            </div>
+            
+            <!-- 表单内容 -->
+            <form id="cancel-form" action="/user-cancel" method="post" class="px-8 pb-8 space-y-5">
+                <p class="text-sm text-[#86868b] text-center">为了验证身份，请输入预约时留下的姓名和电话。</p>
+                
+                <!-- 隐藏的时间字段 -->
+                <input type="hidden" id="cancel-time-input" name="time" value="">
+                
+                <div>
+                    <label class="block text-sm font-medium text-[#1d1d1f] mb-2">您的称呼</label>
+                    <input 
+                        type="text" 
+                        name="name" 
+                        id="cancel-name-input"
+                        required 
+                        placeholder="请输入预约时的姓名" 
+                        class="apple-input w-full border-2 border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] placeholder-[#86868b] focus:outline-none transition-all"
+                    >
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-[#1d1d1f] mb-2">手机号码</label>
+                    <input 
+                        type="tel" 
+                        name="phone" 
+                        id="cancel-phone-input"
+                        required 
+                        placeholder="请输入预约时的手机号" 
+                        pattern="[0-9]{11}"
+                        class="apple-input w-full border-2 border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] placeholder-[#86868b] focus:outline-none transition-all"
+                    >
+                </div>
+                
+                <!-- 按钮组 -->
+                <div class="flex gap-3 pt-3">
+                    <button 
+                        type="button" 
+                        onclick="closeCancelModal()"
+                        class="flex-1 px-5 py-3.5 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl font-semibold hover:bg-[#e8e8ed] transition-all"
+                    >
+                        返回
+                    </button>
+                    <button 
+                        type="submit"
+                        class="flex-1 px-5 py-3.5 bg-[#FF3B30] hover:bg-[#cc2f26] text-white rounded-xl font-semibold transition-all"
+                    >
+                        确认取消
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 当前选中的格子元素
+        let currentSelected = null;
+
+        /**
+         * 选择时间格子
+         */
+        function selectSlot(element) {
+            const slotKey = element.dataset.slot;
+            const displayText = element.dataset.display;
+            
+            // 移除之前选中的样式
+            if (currentSelected) {
+                currentSelected.classList.remove('selected');
+                currentSelected.classList.add('border-[#d2d2d7]');
+            }
+            
+            // 添加选中样式
+            element.classList.add('selected');
+            element.classList.remove('border-[#d2d2d7]');
+            currentSelected = element;
+            
+            // 更新模态框中的时间信息
+            document.getElementById('time-input').value = slotKey;
+            document.getElementById('selected-time-display').textContent = '选中时间：' + displayText;
+            
+            // 显示模态框
+            openModal();
+        }
+
+        /**
+         * 打开模态框
+         */
+        function openModal() {
+            const modal = document.getElementById('booking-modal');
+            modal.classList.remove('hidden');
+            // 聚焦到姓名输入框
+            setTimeout(() => {
+                document.getElementById('name-input').focus();
+            }, 100);
+        }
+
+        /**
+         * 关闭模态框
+         */
+        function closeModal() {
+            const modal = document.getElementById('booking-modal');
+            modal.classList.add('hidden');
+            
+            // 取消选中状态
+            if (currentSelected) {
+                currentSelected.classList.remove('selected');
+                currentSelected.classList.add('border-[#d2d2d7]');
+                currentSelected = null;
+            }
+            
+            // 清空表单
+            document.getElementById('booking-form').reset();
+        }
+
+        /**
+         * 点击模态框背景关闭
+         */
+        document.getElementById('booking-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        /**
+         * ESC键关闭模态框
+         */
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        /**
+         * 页面加载时检查URL参数
+         */
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.get('success') === 'true') {
+                document.getElementById('success-msg').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('success-msg').classList.add('hidden');
+                }, 5000);
+            }
+            
+            if (urlParams.get('success') === 'cancelled') {
+                document.getElementById('cancel-success-msg').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('cancel-success-msg').classList.add('hidden');
+                }, 5000);
+            }
+            
+            if (urlParams.get('error') === 'conflict') {
+                document.getElementById('error-msg').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('error-msg').classList.add('hidden');
+                }, 5000);
+            }
+            
+            if (urlParams.get('error') === 'auth_failed') {
+                document.getElementById('auth-error-msg').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('auth-error-msg').classList.add('hidden');
+                }, 5000);
+            }
+            
+            if (urlParams.get('error') === 'past') {
+                document.getElementById('past-error-msg').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('past-error-msg').classList.add('hidden');
+                }, 5000);
+            }
+            
+            // 清除URL参数（不刷新页面）
+            if (urlParams.has('success') || urlParams.has('error')) {
+                window.history.replaceState({}, '', '/');
+            }
+        });
+
+        /**
+         * 选择已预约的格子（打开取消模态框）
+         */
+        function selectBookedSlot(element) {
+            const slotKey = element.dataset.slot;
+            const displayText = element.dataset.display;
+            
+            // 更新取消模态框中的时间信息
+            document.getElementById('cancel-time-input').value = slotKey;
+            document.getElementById('cancel-time-display').textContent = '选中时间：' + displayText;
+            
+            // 显示取消模态框
+            openCancelModal();
+        }
+
+        /**
+         * 打开取消模态框
+         */
+        function openCancelModal() {
+            const modal = document.getElementById('cancel-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('cancel-name-input').focus();
+            }, 100);
+        }
+
+        /**
+         * 关闭取消模态框
+         */
+        function closeCancelModal() {
+            const modal = document.getElementById('cancel-modal');
+            modal.classList.add('hidden');
+            document.getElementById('cancel-form').reset();
+        }
+
+        // 取消模态框点击背景关闭
+        document.getElementById('cancel-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCancelModal();
+            }
+        });
+    </script>
+</body>
+</html>
